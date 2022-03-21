@@ -14,7 +14,7 @@ import (
 	ar "github.com/mkrautz/goar"
 	"github.com/pkg/errors"
 
-	"github.com/aptly-dev/aptly/pgp"
+	"github.com/ISauve/aptly/pgp"
 	"github.com/kjk/lzma"
 	"github.com/smira/go-xz"
 )

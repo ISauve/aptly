@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
-	"github.com/aptly-dev/aptly/files"
-	"github.com/aptly-dev/aptly/utils"
+	"github.com/ISauve/aptly/files"
+	"github.com/ISauve/aptly/utils"
 	. "gopkg.in/check.v1"
 )
 
@@ -249,7 +249,7 @@ func (s *PublishedStorageSuite) TestRemoveDirsPlus(c *C) {
 
 	list, err := s.storage.Filelist("")
 	c.Check(err, IsNil)
-	c.Check(list, DeepEquals, []string{"a", "b", "c",  "lala/a b", "lala/a+b", "lala/c", "testa"})
+	c.Check(list, DeepEquals, []string{"a", "b", "c", "lala/a b", "lala/a+b", "lala/c", "testa"})
 }
 
 func (s *PublishedStorageSuite) TestRenameFile(c *C) {

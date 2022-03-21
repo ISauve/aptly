@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/aptly-dev/aptly/aptly"
-	"github.com/aptly-dev/aptly/utils"
+	"github.com/ISauve/aptly/aptly"
+	"github.com/ISauve/aptly/utils"
 	"github.com/ncw/swift"
 	"github.com/pkg/errors"
 )

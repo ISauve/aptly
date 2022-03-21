@@ -3,9 +3,9 @@ package deb
 import (
 	"bytes"
 
-	"github.com/aptly-dev/aptly/aptly"
-	"github.com/aptly-dev/aptly/database"
-	"github.com/aptly-dev/aptly/utils"
+	"github.com/ISauve/aptly/aptly"
+	"github.com/ISauve/aptly/database"
+	"github.com/ISauve/aptly/utils"
 	"github.com/ugorji/go/codec"
 )
 

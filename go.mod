@@ -1,4 +1,4 @@
-module github.com/aptly-dev/aptly
+module github.com/ISauve/aptly
 
 go 1.15
 

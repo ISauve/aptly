@@ -3,8 +3,8 @@ package deb
 import (
 	"sync"
 
-	"github.com/aptly-dev/aptly/aptly"
-	"github.com/aptly-dev/aptly/database"
+	"github.com/ISauve/aptly/aptly"
+	"github.com/ISauve/aptly/database"
 )
 
 // CollectionFactory is a single place to generate all desired collections

@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/aptly-dev/aptly/aptly"
-	"github.com/aptly-dev/aptly/cmd"
+	"github.com/ISauve/aptly/aptly"
+	"github.com/ISauve/aptly/cmd"
 )
 
 // Version variable, filled in at link time

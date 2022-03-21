@@ -11,9 +11,9 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/aptly-dev/aptly/aptly"
-	"github.com/aptly-dev/aptly/pgp"
-	"github.com/aptly-dev/aptly/utils"
+	"github.com/ISauve/aptly/aptly"
+	"github.com/ISauve/aptly/pgp"
+	"github.com/ISauve/aptly/utils"
 )
 
 // Changes is a result of .changes file parsing

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/aptly-dev/aptly/pgp"
+	"github.com/ISauve/aptly/pgp"
 	"github.com/smira/commander"
 	"github.com/smira/flag"
 )

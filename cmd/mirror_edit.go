@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/aptly-dev/aptly/pgp"
-	"github.com/aptly-dev/aptly/query"
+	"github.com/ISauve/aptly/pgp"
+	"github.com/ISauve/aptly/query"
 	"github.com/smira/commander"
 	"github.com/smira/flag"
 )

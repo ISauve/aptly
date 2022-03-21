@@ -5,9 +5,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aptly-dev/aptly/aptly"
-	"github.com/aptly-dev/aptly/deb"
-	"github.com/aptly-dev/aptly/utils"
+	"github.com/ISauve/aptly/aptly"
+	"github.com/ISauve/aptly/deb"
+	"github.com/ISauve/aptly/utils"
 	"github.com/smira/commander"
 )
 

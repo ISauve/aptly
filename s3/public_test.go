@@ -11,8 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 
-	"github.com/aptly-dev/aptly/files"
-	"github.com/aptly-dev/aptly/utils"
+	"github.com/ISauve/aptly/files"
+	"github.com/ISauve/aptly/utils"
 )
 
 type PublishedStorageSuite struct {

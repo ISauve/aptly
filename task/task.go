@@ -3,7 +3,7 @@ package task
 import (
 	"sync/atomic"
 
-	"github.com/aptly-dev/aptly/aptly"
+	"github.com/ISauve/aptly/aptly"
 )
 
 // State task is in

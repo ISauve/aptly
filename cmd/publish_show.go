@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aptly-dev/aptly/deb"
+	"github.com/ISauve/aptly/deb"
 	"github.com/smira/commander"
 )
 

@@ -16,10 +16,10 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/ugorji/go/codec"
 
-	"github.com/aptly-dev/aptly/aptly"
-	"github.com/aptly-dev/aptly/database"
-	"github.com/aptly-dev/aptly/pgp"
-	"github.com/aptly-dev/aptly/utils"
+	"github.com/ISauve/aptly/aptly"
+	"github.com/ISauve/aptly/database"
+	"github.com/ISauve/aptly/pgp"
+	"github.com/ISauve/aptly/utils"
 )
 
 type repoSourceItem struct {

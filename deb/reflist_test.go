@@ -3,7 +3,7 @@ package deb
 import (
 	"errors"
 
-	"github.com/aptly-dev/aptly/database/goleveldb"
+	"github.com/ISauve/aptly/database/goleveldb"
 
 	. "gopkg.in/check.v1"
 )

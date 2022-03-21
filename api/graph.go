@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/aptly-dev/aptly/deb"
+	"github.com/ISauve/aptly/deb"
 	"github.com/gin-gonic/gin"
 )
 

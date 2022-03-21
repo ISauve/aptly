@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aptly-dev/aptly/deb"
-	"github.com/aptly-dev/aptly/query"
+	"github.com/ISauve/aptly/deb"
+	"github.com/ISauve/aptly/query"
 	"github.com/smira/commander"
 	"github.com/smira/flag"
 )

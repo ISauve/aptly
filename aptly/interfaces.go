@@ -7,8 +7,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/aptly-dev/aptly/database"
-	"github.com/aptly-dev/aptly/utils"
+	"github.com/ISauve/aptly/database"
+	"github.com/ISauve/aptly/utils"
 )
 
 // ReadSeekerCloser = ReadSeeker + Closer

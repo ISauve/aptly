@@ -5,12 +5,12 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/aptly-dev/aptly/aptly"
-	"github.com/aptly-dev/aptly/console"
-	"github.com/aptly-dev/aptly/database"
-	"github.com/aptly-dev/aptly/database/goleveldb"
-	"github.com/aptly-dev/aptly/files"
-	"github.com/aptly-dev/aptly/utils"
+	"github.com/ISauve/aptly/aptly"
+	"github.com/ISauve/aptly/console"
+	"github.com/ISauve/aptly/database"
+	"github.com/ISauve/aptly/database/goleveldb"
+	"github.com/ISauve/aptly/files"
+	"github.com/ISauve/aptly/utils"
 
 	. "gopkg.in/check.v1"
 )

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aptly-dev/aptly/deb"
-	"github.com/aptly-dev/aptly/utils"
+	"github.com/ISauve/aptly/deb"
+	"github.com/ISauve/aptly/utils"
 	"github.com/smira/commander"
 	"github.com/smira/flag"
 )

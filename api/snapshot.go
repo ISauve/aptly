@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/aptly-dev/aptly/aptly"
-	"github.com/aptly-dev/aptly/database"
-	"github.com/aptly-dev/aptly/deb"
-	"github.com/aptly-dev/aptly/task"
+	"github.com/ISauve/aptly/aptly"
+	"github.com/ISauve/aptly/database"
+	"github.com/ISauve/aptly/deb"
+	"github.com/ISauve/aptly/task"
 	"github.com/gin-gonic/gin"
 )
 

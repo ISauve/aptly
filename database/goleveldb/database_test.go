@@ -5,8 +5,8 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"github.com/aptly-dev/aptly/database"
-	"github.com/aptly-dev/aptly/database/goleveldb"
+	"github.com/ISauve/aptly/database"
+	"github.com/ISauve/aptly/database/goleveldb"
 )
 
 // Launch gocheck tests

@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/aptly-dev/aptly/aptly"
+	"github.com/ISauve/aptly/aptly"
 	"github.com/smira/commander"
 )
 

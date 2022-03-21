@@ -8,8 +8,8 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/aptly-dev/aptly/aptly"
-	"github.com/aptly-dev/aptly/deb"
+	"github.com/ISauve/aptly/aptly"
+	"github.com/ISauve/aptly/deb"
 	"github.com/smira/commander"
 	"github.com/smira/flag"
 )

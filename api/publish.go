@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/aptly-dev/aptly/aptly"
-	"github.com/aptly-dev/aptly/deb"
-	"github.com/aptly-dev/aptly/pgp"
-	"github.com/aptly-dev/aptly/task"
-	"github.com/aptly-dev/aptly/utils"
+	"github.com/ISauve/aptly/aptly"
+	"github.com/ISauve/aptly/deb"
+	"github.com/ISauve/aptly/pgp"
+	"github.com/ISauve/aptly/task"
+	"github.com/ISauve/aptly/utils"
 	"github.com/gin-gonic/gin"
 )
 

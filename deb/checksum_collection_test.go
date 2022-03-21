@@ -1,9 +1,9 @@
 package deb
 
 import (
-	"github.com/aptly-dev/aptly/database"
-	"github.com/aptly-dev/aptly/database/goleveldb"
-	"github.com/aptly-dev/aptly/utils"
+	"github.com/ISauve/aptly/database"
+	"github.com/ISauve/aptly/database/goleveldb"
+	"github.com/ISauve/aptly/utils"
 
 	. "gopkg.in/check.v1"
 )
