@@ -257,9 +257,13 @@ func NewControlFileReader(r io.Reader, isRelease, isInstaller bool) *ControlFile
 	}
 }
 
-// ReadStanza reeads one stanza from control file
 func (c *ControlFileReader) ReadStanza() (Stanza, error) {
 	stanza := make(Stanza, 32)
+	return c.ReadStanzaBuffered(stanza)
+}
+
+// ReadStanza reeads one stanza from control file
+func (c *ControlFileReader) ReadStanzaBuffered(stanza Stanza) (Stanza, error) {
 	lastField := ""
 	lastFieldMultiline := c.isInstaller
 
