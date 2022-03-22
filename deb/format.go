@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"io"
+	"log"
 	"sort"
 	"strings"
 	"unicode"
@@ -31,6 +32,12 @@ func (s *BufferedStanza) Get(key string) *StanzaData {
 	return &(*s)[len(*s)-1]
 }
 
+func (s *BufferedStanza) Clear() {
+	for i := range *s {
+		(*s)[i].val.Reset()
+	}
+}
+
 func (s BufferedStanza) Empty() bool {
 	for _, data := range s {
 		if data.val.String() != "" {
@@ -40,9 +47,10 @@ func (s BufferedStanza) Empty() bool {
 	return true
 }
 
-func (s *BufferedStanza) Clear() {
-	for i := range *s {
-		(*s)[i].val.Reset()
+func (s BufferedStanza) Print() {
+	log.Printf("*** Printing stanza: ***\n")
+	for i := range s {
+		log.Printf("\t%s -> %s\n", s[i].key, s[i].val.String())
 	}
 }
 
