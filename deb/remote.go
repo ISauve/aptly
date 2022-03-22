@@ -430,7 +430,7 @@ ok:
 }
 
 // Fetch updates information about repository
-func (repo *RemoteRepo) FetchBuffered(stanza *BufferedStanza, d aptly.Downloader, verifier pgp.Verifier) error {
+func (repo *RemoteRepo) FetchBuffered(stanza BufferedStanza, d aptly.Downloader, verifier pgp.Verifier) (BufferedStanza, error) {
 	var (
 		release, inrelease, releasesig *os.File
 		err                            error
@@ -440,7 +440,7 @@ func (repo *RemoteRepo) FetchBuffered(stanza *BufferedStanza, d aptly.Downloader
 		// 0. Just download release file to temporary URL
 		release, err = http.DownloadTemp(gocontext.TODO(), d, repo.ReleaseURL("Release").String())
 		if err != nil {
-			return err
+			return stanza, err
 		}
 	} else {
 		// 1. try InRelease file
@@ -468,22 +468,22 @@ func (repo *RemoteRepo) FetchBuffered(stanza *BufferedStanza, d aptly.Downloader
 		// 2. try Release + Release.gpg
 		release, err = http.DownloadTemp(gocontext.TODO(), d, repo.ReleaseURL("Release").String())
 		if err != nil {
-			return err
+			return stanza, err
 		}
 
 		releasesig, err = http.DownloadTemp(gocontext.TODO(), d, repo.ReleaseURL("Release.gpg").String())
 		if err != nil {
-			return err
+			return stanza, err
 		}
 
 		err = verifier.VerifyDetachedSignature(releasesig, release, true)
 		if err != nil {
-			return err
+			return stanza, err
 		}
 
 		_, err = release.Seek(0, 0)
 		if err != nil {
-			return err
+			return stanza, err
 		}
 	}
 ok:
@@ -491,9 +491,9 @@ ok:
 	defer release.Close()
 
 	sreader := NewControlFileReader(release, true, false)
-	err = sreader.ReadBufferedStanza(stanza)
+	stanza, err = sreader.ReadBufferedStanza(stanza)
 	if err != nil {
-		return err
+		return stanza, err
 	}
 
 	if !repo.IsFlat() {
@@ -507,7 +507,7 @@ ok:
 			err = utils.StringsIsSubset(repo.Architectures, architectures,
 				fmt.Sprintf("architecture %%s not available in repo %s, use -force-architectures to override", repo))
 			if err != nil {
-				return err
+				return stanza, err
 			}
 		}
 
@@ -524,7 +524,7 @@ ok:
 			err = utils.StringsIsSubset(repo.Components, components,
 				fmt.Sprintf("component %%s not available in repo %s, use -force-components to override", repo))
 			if err != nil {
-				return err
+				return stanza, err
 			}
 		}
 	}
@@ -564,27 +564,27 @@ ok:
 
 	err = parseSums("MD5Sum", func(sum *utils.ChecksumInfo, data string) { sum.MD5 = data })
 	if err != nil {
-		return err
+		return stanza, err
 	}
 
 	err = parseSums("SHA1", func(sum *utils.ChecksumInfo, data string) { sum.SHA1 = data })
 	if err != nil {
-		return err
+		return stanza, err
 	}
 
 	err = parseSums("SHA256", func(sum *utils.ChecksumInfo, data string) { sum.SHA256 = data })
 	if err != nil {
-		return err
+		return stanza, err
 	}
 
 	err = parseSums("SHA512", func(sum *utils.ChecksumInfo, data string) { sum.SHA512 = data })
 	if err != nil {
-		return err
+		return stanza, err
 	}
 
 	repo.BufMeta = stanza
 
-	return nil
+	return stanza, nil
 }
 
 // DownloadPackageIndexes downloads & parses package index files
