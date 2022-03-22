@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 	"unicode"
+	"unsafe"
 )
 
 // Stanza or paragraph of Debian control file
@@ -268,7 +269,8 @@ func (c *ControlFileReader) ReadStanzaBuffered(stanza Stanza) (Stanza, error) {
 	lastFieldMultiline := c.isInstaller
 
 	for c.scanner.Scan() {
-		line := c.scanner.Text()
+		byteSlice := c.scanner.Bytes()
+		line := *(*string)(unsafe.Pointer(&byteSlice))
 
 		// Current stanza ends with empty line
 		if line == "" {
