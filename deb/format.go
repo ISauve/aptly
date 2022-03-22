@@ -278,6 +278,8 @@ func (c *ControlFileReader) ReadStanzaBuffered(stanza Stanza) (Stanza, error) {
 			panic("Not equal: c.scanner.Text() = " + c.scanner.Text() + ", line = " + line)
 		}
 
+		line = c.scanner.Text()
+
 		// Current stanza ends with empty line
 		if line == "" {
 			if len(stanza) > 0 {
