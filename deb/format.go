@@ -395,6 +395,8 @@ func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedS
 				lastField.val.WriteString(strings.TrimSpace(parts[1]))
 			}
 		}
+		log.Printf("**************************************************")
+		stanza.Print()
 	}
 	if err := c.scanner.Err(); err != nil {
 		return stanza, err
