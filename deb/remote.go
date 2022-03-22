@@ -430,7 +430,7 @@ ok:
 }
 
 // Fetch updates information about repository
-func (repo *RemoteRepo) FetchBuffered(stanza BufferedStanza, d aptly.Downloader, verifier pgp.Verifier) error {
+func (repo *RemoteRepo) FetchBuffered(stanza *BufferedStanza, d aptly.Downloader, verifier pgp.Verifier) error {
 	var (
 		release, inrelease, releasesig *os.File
 		err                            error

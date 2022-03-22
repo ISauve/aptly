@@ -341,7 +341,7 @@ func (c *ControlFileReader) ReadStanza() (Stanza, error) {
 }
 
 // ReadStanza reeads one stanza from control file
-func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) error {
+func (c *ControlFileReader) ReadBufferedStanza(stanza *BufferedStanza) error {
 	lastFieldKey := ""
 	lastFieldMultiline := c.isInstaller
 
