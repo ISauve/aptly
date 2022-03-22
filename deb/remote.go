@@ -48,6 +48,8 @@ type RemoteRepo struct {
 	Architectures []string
 	// Meta-information about repository
 	Meta Stanza
+	// Buffered meta
+	BufMeta BufferedStanza
 	// Last update date
 	LastDownloadDate time.Time
 	// Checksums for release files
@@ -271,12 +273,6 @@ func (repo *RemoteRepo) PackageURL(filename string) *url.URL {
 
 // Fetch updates information about repository
 func (repo *RemoteRepo) Fetch(d aptly.Downloader, verifier pgp.Verifier) error {
-	stanza := make(Stanza, 32)
-	return repo.FetchBuffered(stanza, d, verifier)
-}
-
-// Fetch updates information about repository
-func (repo *RemoteRepo) FetchBuffered(stanzaBuf Stanza, d aptly.Downloader, verifier pgp.Verifier) error {
 	var (
 		release, inrelease, releasesig *os.File
 		err                            error
@@ -337,7 +333,7 @@ ok:
 	defer release.Close()
 
 	sreader := NewControlFileReader(release, true, false)
-	stanza, err := sreader.ReadStanzaBuffered(stanzaBuf)
+	stanza, err := sreader.ReadStanza()
 	if err != nil {
 		return err
 	}
@@ -433,6 +429,164 @@ ok:
 	return nil
 }
 
+// Fetch updates information about repository
+func (repo *RemoteRepo) FetchBuffered(stanza BufferedStanza, d aptly.Downloader, verifier pgp.Verifier) error {
+	var (
+		release, inrelease, releasesig *os.File
+		err                            error
+	)
+
+	if verifier == nil {
+		// 0. Just download release file to temporary URL
+		release, err = http.DownloadTemp(gocontext.TODO(), d, repo.ReleaseURL("Release").String())
+		if err != nil {
+			return err
+		}
+	} else {
+		// 1. try InRelease file
+		inrelease, err = http.DownloadTemp(gocontext.TODO(), d, repo.ReleaseURL("InRelease").String())
+		if err != nil {
+			goto splitsignature
+		}
+		defer inrelease.Close()
+
+		_, err = verifier.VerifyClearsigned(inrelease, true)
+		if err != nil {
+			goto splitsignature
+		}
+
+		inrelease.Seek(0, 0)
+
+		release, err = verifier.ExtractClearsigned(inrelease)
+		if err != nil {
+			goto splitsignature
+		}
+
+		goto ok
+
+	splitsignature:
+		// 2. try Release + Release.gpg
+		release, err = http.DownloadTemp(gocontext.TODO(), d, repo.ReleaseURL("Release").String())
+		if err != nil {
+			return err
+		}
+
+		releasesig, err = http.DownloadTemp(gocontext.TODO(), d, repo.ReleaseURL("Release.gpg").String())
+		if err != nil {
+			return err
+		}
+
+		err = verifier.VerifyDetachedSignature(releasesig, release, true)
+		if err != nil {
+			return err
+		}
+
+		_, err = release.Seek(0, 0)
+		if err != nil {
+			return err
+		}
+	}
+ok:
+
+	defer release.Close()
+
+	sreader := NewControlFileReader(release, true, false)
+	err = sreader.ReadBufferedStanza(stanza)
+	if err != nil {
+		return err
+	}
+
+	if !repo.IsFlat() {
+		architectures := strings.Split(stanza.Get("Architectures").val.String(), " ")
+		sort.Strings(architectures)
+		// "source" architecture is never present, despite Release file claims
+		architectures = utils.StrSlicesSubstract(architectures, []string{ArchitectureSource})
+		if len(repo.Architectures) == 0 {
+			repo.Architectures = architectures
+		} else if !repo.SkipArchitectureCheck {
+			err = utils.StringsIsSubset(repo.Architectures, architectures,
+				fmt.Sprintf("architecture %%s not available in repo %s, use -force-architectures to override", repo))
+			if err != nil {
+				return err
+			}
+		}
+
+		components := strings.Split(stanza.Get("Components").val.String(), " ")
+		if strings.Contains(repo.Distribution, "/") {
+			distributionLast := path.Base(repo.Distribution) + "/"
+			for i := range components {
+				components[i] = strings.TrimPrefix(components[i], distributionLast)
+			}
+		}
+		if len(repo.Components) == 0 {
+			repo.Components = components
+		} else if !repo.SkipComponentCheck {
+			err = utils.StringsIsSubset(repo.Components, components,
+				fmt.Sprintf("component %%s not available in repo %s, use -force-components to override", repo))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	repo.ReleaseFiles = make(map[string]utils.ChecksumInfo)
+
+	parseSums := func(field string, setter func(sum *utils.ChecksumInfo, data string)) error {
+		for _, line := range strings.Split(stanza.Get(field).val.String(), "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			parts := strings.Fields(line)
+
+			if len(parts) != 3 {
+				return fmt.Errorf("unparseable hash sum line: %#v", line)
+			}
+
+			var size int64
+			size, err = strconv.ParseInt(parts[1], 10, 64)
+			if err != nil {
+				return fmt.Errorf("unable to parse size: %s", err)
+			}
+
+			sum := repo.ReleaseFiles[parts[2]]
+
+			sum.Size = size
+			setter(&sum, parts[0])
+
+			repo.ReleaseFiles[parts[2]] = sum
+		}
+
+		stanza.Get(field).val.Reset()
+
+		return nil
+	}
+
+	err = parseSums("MD5Sum", func(sum *utils.ChecksumInfo, data string) { sum.MD5 = data })
+	if err != nil {
+		return err
+	}
+
+	err = parseSums("SHA1", func(sum *utils.ChecksumInfo, data string) { sum.SHA1 = data })
+	if err != nil {
+		return err
+	}
+
+	err = parseSums("SHA256", func(sum *utils.ChecksumInfo, data string) { sum.SHA256 = data })
+	if err != nil {
+		return err
+	}
+
+	err = parseSums("SHA512", func(sum *utils.ChecksumInfo, data string) { sum.SHA512 = data })
+	if err != nil {
+		return err
+	}
+
+	repo.BufMeta = stanza
+
+	return nil
+}
+
 // DownloadPackageIndexes downloads & parses package index files
 func (repo *RemoteRepo) DownloadPackageIndexes(progress aptly.Progress, d aptly.Downloader, verifier pgp.Verifier, collectionFactory *CollectionFactory,
 	ignoreMismatch bool) error {
@@ -523,15 +677,16 @@ func (repo *RemoteRepo) DownloadPackageIndexes(progress aptly.Progress, d aptly.
 		}
 
 		sreader := NewControlFileReader(packagesReader, false, isInstaller)
-		stanza := make(Stanza, 32)
+		// stanza := make(Stanza, 32)
 
 		for {
-			// clear the stanza
-			for k := range stanza {
-				delete(stanza, k)
-			}
-
-			stanza, err := sreader.ReadStanzaBuffered(stanza)
+			// // clear the stanza
+			// for k := range stanza {
+			// 	delete(stanza, k)
+			// }
+			//
+			// stanza, err := sreader.ReadStanzaBuffered(stanza)
+			stanza, err := sreader.ReadStanza()
 			if err != nil {
 				return err
 			}

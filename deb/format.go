@@ -13,6 +13,39 @@ import (
 // Stanza or paragraph of Debian control file
 type Stanza map[string]string
 
+type StanzaData struct {
+	key string
+	val strings.Builder
+}
+
+type BufferedStanza []StanzaData
+
+// Get returns a pointer to the field in the stanza with the given key, and creates a new field if that one doesn't exist
+func (s *BufferedStanza) Get(key string) *StanzaData {
+	for i := range *s {
+		if (*s)[i].key == key {
+			return &(*s)[i]
+		}
+	}
+	*s = append(*s, StanzaData{key: key})
+	return &(*s)[len(*s)-1]
+}
+
+func (s BufferedStanza) Empty() bool {
+	for _, data := range s {
+		if data.val.String() != "" {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *BufferedStanza) Clear() {
+	for i := range *s {
+		(*s)[i].val.Reset()
+	}
+}
+
 // MaxFieldSize is maximum stanza field size in bytes
 const MaxFieldSize = 2 * 1024 * 1024
 
@@ -258,27 +291,14 @@ func NewControlFileReader(r io.Reader, isRelease, isInstaller bool) *ControlFile
 	}
 }
 
+// ReadStanza reads one stanza from control file
 func (c *ControlFileReader) ReadStanza() (Stanza, error) {
 	stanza := make(Stanza, 32)
-	return c.ReadStanzaBuffered(stanza)
-}
-
-// ReadStanza reeads one stanza from control file
-func (c *ControlFileReader) ReadStanzaBuffered(stanza Stanza) (Stanza, error) {
 	lastField := ""
 	lastFieldMultiline := c.isInstaller
 
-	var byteSlice []byte
-
 	for c.scanner.Scan() {
-		byteSlice = c.scanner.Bytes()
-		line := *(*string)(unsafe.Pointer(&byteSlice))
-
-		if c.scanner.Text() != line {
-			panic("Not equal: c.scanner.Text() = " + c.scanner.Text() + ", line = " + line)
-		}
-
-		line = c.scanner.Text()
+		line := c.scanner.Text()
 
 		// Current stanza ends with empty line
 		if line == "" {
@@ -318,4 +338,55 @@ func (c *ControlFileReader) ReadStanzaBuffered(stanza Stanza) (Stanza, error) {
 		return stanza, nil
 	}
 	return nil, nil
+}
+
+// ReadStanza reeads one stanza from control file
+func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) error {
+	lastFieldKey := ""
+	lastFieldMultiline := c.isInstaller
+
+	for c.scanner.Scan() {
+		lastField := stanza.Get(lastFieldKey)
+
+		lineBytes := c.scanner.Bytes()
+		line := *(*string)(unsafe.Pointer(&lineBytes))
+
+		// Current stanza ends with empty line
+		if line == "" {
+			if stanza.Empty() {
+				return nil
+			}
+			continue
+		}
+
+		if line[0] == ' ' || line[0] == '\t' || c.isInstaller {
+			if lastFieldMultiline {
+				lastField.val.WriteString(line)
+				lastField.val.WriteString("\n")
+			} else {
+				lastField.val.WriteString(" ")
+				lastField.val.WriteString(strings.TrimSpace(line))
+			}
+		} else {
+			parts := strings.SplitN(line, ":", 2)
+			if len(parts) != 2 {
+				return ErrMalformedStanza
+			}
+			lastFieldKey = canonicalCase(parts[0])
+			lastFieldMultiline = isMultilineField(lastFieldKey, c.isRelease)
+			if lastFieldMultiline {
+				lastField.val.Reset()
+				lastField.val.WriteString(parts[1])
+				if parts[1] != "" {
+					lastField.val.WriteString("\n")
+				}
+			} else {
+				lastField.val.WriteString(strings.TrimSpace(parts[1]))
+			}
+		}
+	}
+	if err := c.scanner.Err(); err != nil {
+		return err
+	}
+	return nil
 }
