@@ -268,9 +268,15 @@ func (c *ControlFileReader) ReadStanzaBuffered(stanza Stanza) (Stanza, error) {
 	lastField := ""
 	lastFieldMultiline := c.isInstaller
 
+	var byteSlice []byte
+
 	for c.scanner.Scan() {
-		byteSlice := c.scanner.Bytes()
+		byteSlice = c.scanner.Bytes()
 		line := *(*string)(unsafe.Pointer(&byteSlice))
+
+		if c.scanner.Text() != line {
+			panic("Not equal: c.scanner.Text() = " + c.scanner.Text() + ", line = " + line)
+		}
 
 		// Current stanza ends with empty line
 		if line == "" {
