@@ -23,15 +23,15 @@ type BufferedStanza []StanzaData
 
 // Get returns a pointer to the field in the stanza with the given key, and creates a new field if that one doesn't exist
 func (s *BufferedStanza) Get(key string) *StanzaData {
-	log.Printf("Fetching value for key %s: ", key)
+	// log.Printf("Fetching value for key %s: ", key)
 	for i := range *s {
 		if (*s)[i].key == key {
-			log.Printf("val = %s\n", (*s)[i].val.String())
+			// log.Printf("val = %s\n", (*s)[i].val.String())
 			return &(*s)[i]
 		}
 	}
 	*s = append(*s, StanzaData{key: key})
-	log.Printf("val = %s\n", (*s)[len(*s)-1].val.String())
+	// log.Printf("val = %s\n", (*s)[len(*s)-1].val.String())
 	return &(*s)[len(*s)-1]
 }
 
@@ -43,7 +43,7 @@ func (s *BufferedStanza) Clear() {
 
 func (s BufferedStanza) Empty() bool {
 	for _, data := range s {
-		if data.val.String() != "" {
+		if data.val.Len() > 0 {
 			return false
 		}
 	}
@@ -357,8 +357,6 @@ func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedS
 	lastFieldMultiline := c.isInstaller
 
 	for c.scanner.Scan() {
-		lastField := stanza.Get(lastFieldKey)
-
 		lineBytes := c.scanner.Bytes()
 		line := *(*string)(unsafe.Pointer(&lineBytes))
 
@@ -372,9 +370,11 @@ func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedS
 
 		if line[0] == ' ' || line[0] == '\t' || c.isInstaller {
 			if lastFieldMultiline {
+				lastField := stanza.Get(lastFieldKey)
 				lastField.val.WriteString(line)
 				lastField.val.WriteString("\n")
 			} else {
+				lastField := stanza.Get(lastFieldKey)
 				lastField.val.WriteString(" ")
 				lastField.val.WriteString(strings.TrimSpace(line))
 			}
@@ -385,14 +385,16 @@ func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedS
 			}
 			lastFieldKey = canonicalCase(parts[0])
 			lastFieldMultiline = isMultilineField(lastFieldKey, c.isRelease)
-			lastField := stanza.Get(lastFieldKey)
 			if lastFieldMultiline {
+				lastField := stanza.Get(lastFieldKey)
 				lastField.val.Reset()
 				lastField.val.WriteString(parts[1])
 				if parts[1] != "" {
 					lastField.val.WriteString("\n")
 				}
 			} else {
+				lastField := stanza.Get(lastFieldKey)
+				lastField.val.Reset()
 				lastField.val.WriteString(strings.TrimSpace(parts[1]))
 			}
 		}
