@@ -23,15 +23,12 @@ type BufferedStanza []StanzaData
 
 // Get returns a pointer to the field in the stanza with the given key, and creates a new field if that one doesn't exist
 func (s *BufferedStanza) Get(key string) *StanzaData {
-	// log.Printf("Fetching value for key %s: ", key)
 	for i := range *s {
 		if (*s)[i].key == key {
-			// log.Printf("val = %s\n", (*s)[i].val.String())
 			return &(*s)[i]
 		}
 	}
 	*s = append(*s, StanzaData{key: key})
-	// log.Printf("val = %s\n", (*s)[len(*s)-1].val.String())
 	return &(*s)[len(*s)-1]
 }
 
