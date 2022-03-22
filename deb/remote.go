@@ -271,6 +271,12 @@ func (repo *RemoteRepo) PackageURL(filename string) *url.URL {
 
 // Fetch updates information about repository
 func (repo *RemoteRepo) Fetch(d aptly.Downloader, verifier pgp.Verifier) error {
+	stanza := make(Stanza, 32)
+	return repo.FetchBuffered(stanza, d, verifier)
+}
+
+// Fetch updates information about repository
+func (repo *RemoteRepo) FetchBuffered(stanzaBuf Stanza, d aptly.Downloader, verifier pgp.Verifier) error {
 	var (
 		release, inrelease, releasesig *os.File
 		err                            error
@@ -331,7 +337,7 @@ ok:
 	defer release.Close()
 
 	sreader := NewControlFileReader(release, true, false)
-	stanza, err := sreader.ReadStanza()
+	stanza, err := sreader.ReadStanzaBuffered(stanzaBuf)
 	if err != nil {
 		return err
 	}
