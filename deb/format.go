@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"io"
+	"log"
 	"sort"
 	"strings"
 	"unicode"
@@ -28,6 +29,25 @@ func (b BufferedStanza) Empty() bool {
 		}
 	}
 	return true
+}
+
+func (b *BufferedStanza) Clear() {
+	for _, val := range *b {
+		if val != nil {
+			val.Reset()
+		}
+	}
+}
+
+func (b *BufferedStanza) Print() {
+	log.Printf("*** Printing stanza ***")
+	for key, val := range *b {
+		var printVal string
+		if val != nil {
+			printVal = val.String()
+		}
+		log.Printf("  %s -> %s\n", key, printVal)
+	}
 }
 
 // MaxFieldSize is maximum stanza field size in bytes
