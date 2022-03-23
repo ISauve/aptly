@@ -2,6 +2,7 @@ package deb
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"io"
 	"log"
@@ -350,29 +351,32 @@ func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedS
 	lastFieldMultiline := c.isInstaller
 
 	for c.scanner.Scan() {
-		line := c.scanner.Text()
+		// line := c.scanner.Text()
+		lineBytes := c.scanner.Bytes()
+		// line := *(*string)(unsafe.Pointer(&lineBytes))
 
 		// Current stanza ends with empty line
-		if line == "" {
+		if len(lineBytes) == 0 {
 			if len(stanza) > 0 {
 				return stanza, nil
 			}
 			continue
 		}
 
-		if line[0] == ' ' || line[0] == '\t' || c.isInstaller {
+		if lineBytes[0] == ' ' || lineBytes[0] == '\t' || c.isInstaller {
 			if stanza[lastField] == nil {
 				stanza[lastField] = &strings.Builder{}
 			}
 
 			if lastFieldMultiline {
-				stanza[lastField].WriteString(line)
-				stanza[lastField].WriteString("\n")
+				stanza[lastField].Write(lineBytes)
+				stanza[lastField].WriteByte('\n')
 			} else {
-				stanza[lastField].WriteString(" ")
-				stanza[lastField].WriteString(strings.TrimSpace(line))
+				stanza[lastField].WriteByte(' ')
+				stanza[lastField].Write(bytes.TrimSpace(lineBytes))
 			}
 		} else {
+			line := string(lineBytes)
 			parts := strings.SplitN(line, ":", 2)
 			if len(parts) != 2 {
 				return nil, ErrMalformedStanza
