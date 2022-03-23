@@ -497,7 +497,7 @@ ok:
 	}
 
 	if !repo.IsFlat() {
-		architectures := strings.Split(stanza.Get("Architectures").val.String(), " ")
+		architectures := strings.Split(stanza.Get("Architectures"), " ")
 		sort.Strings(architectures)
 		// "source" architecture is never present, despite Release file claims
 		architectures = utils.StrSlicesSubstract(architectures, []string{ArchitectureSource})
@@ -511,7 +511,7 @@ ok:
 			}
 		}
 
-		components := strings.Split(stanza.Get("Components").val.String(), " ")
+		components := strings.Split(stanza.Get("Components"), " ")
 		if strings.Contains(repo.Distribution, "/") {
 			distributionLast := path.Base(repo.Distribution) + "/"
 			for i := range components {
@@ -532,7 +532,7 @@ ok:
 	repo.ReleaseFiles = make(map[string]utils.ChecksumInfo)
 
 	parseSums := func(field string, setter func(sum *utils.ChecksumInfo, data string)) error {
-		for _, line := range strings.Split(stanza.Get(field).val.String(), "\n") {
+		for _, line := range strings.Split(stanza.Get(field), "\n") {
 			line = strings.TrimSpace(line)
 			if line == "" {
 				continue
@@ -557,7 +557,9 @@ ok:
 			repo.ReleaseFiles[parts[2]] = sum
 		}
 
-		stanza.Get(field).val.Reset()
+		if stanza[field] != nil {
+			stanza[field].Reset()
+		}
 
 		return nil
 	}

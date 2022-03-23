@@ -4,54 +4,30 @@ import (
 	"bufio"
 	"errors"
 	"io"
-	"log"
 	"sort"
 	"strings"
 	"unicode"
-	"unsafe"
 )
 
 // Stanza or paragraph of Debian control file
 type Stanza map[string]string
 
-type StanzaData struct {
-	key string
-	val strings.Builder
-}
+type BufferedStanza map[string]*strings.Builder
 
-type BufferedStanza []StanzaData
-
-// Get returns a pointer to the field in the stanza with the given key, and creates a new field if that one doesn't exist
-func (s *BufferedStanza) Get(key string) *StanzaData {
-	for i := range *s {
-		if (*s)[i].key == key {
-			return &(*s)[i]
-		}
+func (b BufferedStanza) Get(key string) string {
+	if b[key] == nil {
+		return ""
 	}
-	*s = append(*s, StanzaData{key: key})
-	return &(*s)[len(*s)-1]
+	return b[key].String()
 }
 
-func (s *BufferedStanza) Clear() {
-	for i := range *s {
-		(*s)[i].val.Reset()
-	}
-}
-
-func (s BufferedStanza) Empty() bool {
-	for _, data := range s {
-		if data.val.Len() > 0 {
+func (b BufferedStanza) Empty() bool {
+	for _, val := range b {
+		if val != nil && val.Len() > 0 {
 			return false
 		}
 	}
 	return true
-}
-
-func (s BufferedStanza) Print() {
-	log.Printf("*** Printing stanza: ***\n")
-	for i := range s {
-		log.Printf("\t%s -> %s\n", s[i].key, s[i].val.String())
-	}
 }
 
 // MaxFieldSize is maximum stanza field size in bytes
@@ -350,56 +326,61 @@ func (c *ControlFileReader) ReadStanza() (Stanza, error) {
 
 // ReadStanza reeads one stanza from control file
 func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedStanza, error) {
-	lastFieldKey := ""
+	lastField := ""
 	lastFieldMultiline := c.isInstaller
 
 	for c.scanner.Scan() {
-		lineBytes := c.scanner.Bytes()
-		line := *(*string)(unsafe.Pointer(&lineBytes))
+		line := c.scanner.Text()
 
 		// Current stanza ends with empty line
 		if line == "" {
-			if stanza.Empty() {
+			if len(stanza) > 0 {
 				return stanza, nil
 			}
 			continue
 		}
 
 		if line[0] == ' ' || line[0] == '\t' || c.isInstaller {
+			if stanza[lastField] == nil {
+				stanza[lastField] = &strings.Builder{}
+			}
+
 			if lastFieldMultiline {
-				lastField := stanza.Get(lastFieldKey)
-				lastField.val.WriteString(line)
-				lastField.val.WriteString("\n")
+				stanza[lastField].WriteString(line)
+				stanza[lastField].WriteString("\n")
 			} else {
-				lastField := stanza.Get(lastFieldKey)
-				lastField.val.WriteString(" ")
-				lastField.val.WriteString(strings.TrimSpace(line))
+				stanza[lastField].WriteString(" ")
+				stanza[lastField].WriteString(strings.TrimSpace(line))
 			}
 		} else {
 			parts := strings.SplitN(line, ":", 2)
 			if len(parts) != 2 {
-				return stanza, ErrMalformedStanza
+				return nil, ErrMalformedStanza
 			}
-			lastFieldKey = canonicalCase(parts[0])
-			lastFieldMultiline = isMultilineField(lastFieldKey, c.isRelease)
+			lastField = canonicalCase(parts[0])
+			lastFieldMultiline = isMultilineField(lastField, c.isRelease)
+
+			if stanza[lastField] == nil {
+				stanza[lastField] = &strings.Builder{}
+			}
+
 			if lastFieldMultiline {
-				lastField := stanza.Get(lastFieldKey)
-				lastField.val.Reset()
-				lastField.val.WriteString(parts[1])
+				stanza[lastField].Reset()
+				stanza[lastField].WriteString(parts[1])
 				if parts[1] != "" {
-					lastField.val.WriteString("\n")
+					stanza[lastField].WriteString("\n")
 				}
 			} else {
-				lastField := stanza.Get(lastFieldKey)
-				lastField.val.Reset()
-				lastField.val.WriteString(strings.TrimSpace(parts[1]))
+				stanza[lastField].Reset()
+				stanza[lastField].WriteString(strings.TrimSpace(parts[1]))
 			}
 		}
-		log.Printf("**************************************************")
-		stanza.Print()
 	}
 	if err := c.scanner.Err(); err != nil {
-		return stanza, err
+		return nil, err
 	}
-	return stanza, nil
+	if len(stanza) > 0 {
+		return stanza, nil
+	}
+	return nil, nil
 }

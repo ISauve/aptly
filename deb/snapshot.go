@@ -51,9 +51,9 @@ func NewSnapshotFromRepository(name string, repo *RemoteRepo) (*Snapshot, error)
 
 	var origin, notAutomatic, butAutomaticUpgrades string
 	if !repo.BufMeta.Empty() {
-		origin = repo.BufMeta.Get("Origin").val.String()
-		notAutomatic = repo.BufMeta.Get("NotAutomatic").val.String()
-		butAutomaticUpgrades = repo.BufMeta.Get("ButAutomaticUpgrades").val.String()
+		origin = repo.BufMeta.Get("Origin")
+		notAutomatic = repo.BufMeta.Get("NotAutomatic")
+		butAutomaticUpgrades = repo.BufMeta.Get("ButAutomaticUpgrades")
 	} else {
 		origin = repo.Meta["Origin"]
 		notAutomatic = repo.Meta["NotAutomatic"]
