@@ -491,7 +491,7 @@ ok:
 	defer release.Close()
 
 	sreader := NewControlFileReader(release, true, false)
-	stanza, err = sreader.ReadBufferedStanza(stanza)
+	err = sreader.ReadBufferedStanza(stanza)
 	if err != nil {
 		return stanza, err
 	}

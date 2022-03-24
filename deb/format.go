@@ -346,19 +346,17 @@ func (c *ControlFileReader) ReadStanza() (Stanza, error) {
 }
 
 // ReadStanza reeads one stanza from control file
-func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedStanza, error) {
+func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) error {
 	lastField := ""
 	lastFieldMultiline := c.isInstaller
 
 	for c.scanner.Scan() {
-		// line := c.scanner.Text()
 		lineBytes := c.scanner.Bytes()
-		// line := *(*string)(unsafe.Pointer(&lineBytes))
 
 		// Current stanza ends with empty line
 		if len(lineBytes) == 0 {
-			if len(stanza) > 0 {
-				return stanza, nil
+			if !stanza.Empty() {
+				return nil
 			}
 			continue
 		}
@@ -379,7 +377,7 @@ func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedS
 			line := string(lineBytes)
 			parts := strings.SplitN(line, ":", 2)
 			if len(parts) != 2 {
-				return nil, ErrMalformedStanza
+				return ErrMalformedStanza
 			}
 			lastField = canonicalCase(parts[0])
 			lastFieldMultiline = isMultilineField(lastField, c.isRelease)
@@ -392,7 +390,7 @@ func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedS
 				stanza[lastField].Reset()
 				stanza[lastField].WriteString(parts[1])
 				if parts[1] != "" {
-					stanza[lastField].WriteString("\n")
+					stanza[lastField].WriteByte('\n')
 				}
 			} else {
 				stanza[lastField].Reset()
@@ -401,10 +399,7 @@ func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedS
 		}
 	}
 	if err := c.scanner.Err(); err != nil {
-		return nil, err
+		return err
 	}
-	if len(stanza) > 0 {
-		return stanza, nil
-	}
-	return nil, nil
+	return nil
 }
