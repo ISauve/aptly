@@ -679,16 +679,11 @@ func (repo *RemoteRepo) DownloadPackageIndexes(progress aptly.Progress, d aptly.
 		}
 
 		sreader := NewControlFileReader(packagesReader, false, isInstaller)
-		// stanza := make(Stanza, 32)
+		stanza := make(BufferedStanza, 32)
 
 		for {
-			// // clear the stanza
-			// for k := range stanza {
-			// 	delete(stanza, k)
-			// }
-			//
-			// stanza, err := sreader.ReadStanzaBuffered(stanza)
-			stanza, err := sreader.ReadStanza()
+			stanza.Clear()
+			err = sreader.ReadBufferedStanza(stanza)
 			if err != nil {
 				return err
 			}
@@ -704,16 +699,16 @@ func (repo *RemoteRepo) DownloadPackageIndexes(progress aptly.Progress, d aptly.
 			var p *Package
 
 			if kind == PackageTypeBinary {
-				p = NewPackageFromControlFile(stanza)
+				p = NewPackageFromBufferedControlFile(stanza)
 			} else if kind == PackageTypeUdeb {
-				p = NewUdebPackageFromControlFile(stanza)
+				p = NewUdebPackageFromBufferedControlFile(stanza)
 			} else if kind == PackageTypeSource {
-				p, err = NewSourcePackageFromControlFile(stanza)
+				p, err = NewSourcePackageFromBufferedControlFile(stanza)
 				if err != nil {
 					return err
 				}
 			} else if kind == PackageTypeInstaller {
-				p, err = NewInstallerPackageFromControlFile(stanza, repo, component, architecture, d)
+				p, err = NewInstallerPackageFromBufferedControlFile(stanza, repo, component, architecture, d)
 				if err != nil {
 					return err
 				}

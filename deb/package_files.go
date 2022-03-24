@@ -163,3 +163,30 @@ func (files PackageFiles) ParseSumFields(stanza Stanza) (PackageFiles, error) {
 
 	return files, nil
 }
+
+// ParseSumFields populates PackageFiles by parsing stanza checksums fields
+func (files PackageFiles) ParseSumFieldsBuffered(stanza BufferedStanza) (PackageFiles, error) {
+	var err error
+
+	files, err = files.ParseSumField(stanza.Get("Files"), func(sum *utils.ChecksumInfo, data string) { sum.MD5 = data }, true, true)
+	if err != nil {
+		return nil, err
+	}
+
+	files, err = files.ParseSumField(stanza.Get("Checksums-Sha1"), func(sum *utils.ChecksumInfo, data string) { sum.SHA1 = data }, true, true)
+	if err != nil {
+		return nil, err
+	}
+
+	files, err = files.ParseSumField(stanza.Get("Checksums-Sha256"), func(sum *utils.ChecksumInfo, data string) { sum.SHA256 = data }, true, true)
+	if err != nil {
+		return nil, err
+	}
+
+	files, err = files.ParseSumField(stanza.Get("Checksums-Sha512"), func(sum *utils.ChecksumInfo, data string) { sum.SHA512 = data }, true, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return files, nil
+}

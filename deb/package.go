@@ -121,6 +121,64 @@ func NewPackageFromControlFile(input Stanza) *Package {
 	return result
 }
 
+// NewPackageFromBufferedControlFile creates Package from parsed Debian control file
+func NewPackageFromBufferedControlFile(bufferedInput BufferedStanza) *Package {
+	result := &Package{
+		Name:         bufferedInput.GetCopy("Package"),
+		Version:      bufferedInput.GetCopy("Version"),
+		Architecture: bufferedInput.GetCopy("Architecture"),
+		Source:       bufferedInput.GetCopy("Source"),
+		V06Plus:      true,
+	}
+
+	bufferedInput.Reset("Package")
+	bufferedInput.Reset("Version")
+	bufferedInput.Reset("Architecture")
+	bufferedInput.Reset("Source")
+
+	filesize, _ := strconv.ParseInt(bufferedInput.Get("Size"), 10, 64)
+
+	md5 := bufferedInput.GetCopy("MD5sum")
+	if md5 == "" {
+		// there are some broken repos out there with MD5 in wrong field
+		md5 = bufferedInput.GetCopy("MD5Sum")
+	}
+
+	result.UpdateFiles(PackageFiles{PackageFile{
+		Filename:     filepath.Base(bufferedInput.GetCopy("Filename")),
+		downloadPath: filepath.Dir(bufferedInput.GetCopy("Filename")),
+		Checksums: utils.ChecksumInfo{
+			Size:   filesize,
+			MD5:    strings.TrimSpace(md5),
+			SHA1:   strings.TrimSpace(bufferedInput.GetCopy("SHA1")),
+			SHA256: strings.TrimSpace(bufferedInput.GetCopy("SHA256")),
+			SHA512: strings.TrimSpace(bufferedInput.GetCopy("SHA512")),
+		},
+	}})
+
+	bufferedInput.Reset("Filename")
+	bufferedInput.Reset("MD5sum")
+	bufferedInput.Reset("MD5Sum")
+	bufferedInput.Reset("SHA1")
+	bufferedInput.Reset("SHA256")
+	bufferedInput.Reset("SHA512")
+	bufferedInput.Reset("Size")
+
+	depends := &PackageDependencies{}
+	depends.Depends = parseDependenciesBuffered(bufferedInput, "Depends")
+	depends.PreDepends = parseDependenciesBuffered(bufferedInput, "Pre-Depends")
+	depends.Suggests = parseDependenciesBuffered(bufferedInput, "Suggests")
+	depends.Recommends = parseDependenciesBuffered(bufferedInput, "Recommends")
+	result.deps = depends
+
+	result.Provides = parseDependenciesBuffered(bufferedInput, "Provides")
+
+	// TODO
+	// result.extra = &input
+
+	return result
+}
+
 // NewSourcePackageFromControlFile creates Package from parsed Debian control file for source package
 func NewSourcePackageFromControlFile(input Stanza) (*Package, error) {
 	result := &Package{
@@ -164,6 +222,49 @@ func NewSourcePackageFromControlFile(input Stanza) (*Package, error) {
 	return result, nil
 }
 
+func NewSourcePackageFromBufferedControlFile(bufferedInput BufferedStanza) (*Package, error) {
+	result := &Package{
+		IsSource:           true,
+		Name:               bufferedInput.GetCopy("Package"),
+		Version:            bufferedInput.GetCopy("Version"),
+		Architecture:       "source",
+		SourceArchitecture: bufferedInput.GetCopy("Architecture"),
+		V06Plus:            true,
+	}
+
+	bufferedInput.Reset("Package")
+	bufferedInput.Reset("Version")
+	bufferedInput.Reset("Architecture")
+
+	var err error
+
+	files := make(PackageFiles, 0, 3)
+	files, err = files.ParseSumFieldsBuffered(bufferedInput)
+	if err != nil {
+		return nil, err
+	}
+
+	bufferedInput.Reset("Files")
+	bufferedInput.Reset("Checksums-Sha1")
+	bufferedInput.Reset("Checksums-Sha256")
+
+	for i := range files {
+		files[i].downloadPath = bufferedInput.GetCopy("Directory")
+	}
+
+	result.UpdateFiles(files)
+
+	depends := &PackageDependencies{}
+	depends.BuildDepends = parseDependenciesBuffered(bufferedInput, "Build-Depends")
+	depends.BuildDependsInDep = parseDependenciesBuffered(bufferedInput, "Build-Depends-Indep")
+	result.deps = depends
+
+	// TODO
+	// result.extra = &input
+
+	return result, nil
+}
+
 // NewUdebPackageFromControlFile creates .udeb Package from parsed Debian control file
 func NewUdebPackageFromControlFile(input Stanza) *Package {
 	p := NewPackageFromControlFile(input)
@@ -172,8 +273,16 @@ func NewUdebPackageFromControlFile(input Stanza) *Package {
 	return p
 }
 
+// NewUdebPackageFromControlFile creates .udeb Package from parsed Debian control file
+func NewUdebPackageFromBufferedControlFile(input BufferedStanza) *Package {
+	p := NewPackageFromBufferedControlFile(input)
+	p.IsUdeb = true
+
+	return p
+}
+
 // NewInstallerPackageFromControlFile creates a dummy installer Package from parsed hash sum file
-func NewInstallerPackageFromControlFile(input Stanza, repo *RemoteRepo, component, architecture string, d aptly.Downloader) (*Package, error) {
+func NewInstallerPackageFromBufferedControlFile(input BufferedStanza, repo *RemoteRepo, component, architecture string, d aptly.Downloader) (*Package, error) {
 	p := &Package{
 		Name:         "installer",
 		Architecture: architecture,
@@ -184,7 +293,7 @@ func NewInstallerPackageFromControlFile(input Stanza, repo *RemoteRepo, componen
 	}
 
 	files := make(PackageFiles, 0)
-	files, err := files.ParseSumField(input[""], func(sum *utils.ChecksumInfo, data string) { sum.SHA256 = data }, false, false)
+	files, err := files.ParseSumField(input.GetCopy(""), func(sum *utils.ChecksumInfo, data string) { sum.SHA256 = data }, false, false)
 	if err != nil {
 		return nil, err
 	}

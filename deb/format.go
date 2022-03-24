@@ -23,6 +23,20 @@ func (b BufferedStanza) Get(key string) string {
 	return b[key].String()
 }
 
+func (b BufferedStanza) GetCopy(key string) string {
+	if b[key] == nil {
+		return ""
+	}
+	return string(b[key].String())
+}
+
+func (b BufferedStanza) Reset(key string) {
+	if b[key] == nil {
+		return
+	}
+	b[key].Reset()
+}
+
 func (b BufferedStanza) Empty() bool {
 	for _, val := range b {
 		if val != nil && val.Len() > 0 {
