@@ -124,35 +124,35 @@ func NewPackageFromControlFile(input Stanza) *Package {
 // NewPackageFromBufferedControlFile creates Package from parsed Debian control file
 func NewPackageFromBufferedControlFile(bufferedInput BufferedStanza) *Package {
 	result := &Package{
-		Name:         bufferedInput.GetCopy("Package"),
-		Version:      bufferedInput.GetCopy("Version"),
-		Architecture: bufferedInput.GetCopy("Architecture"),
-		Source:       bufferedInput.GetCopy("Source"),
+		Name:         bufferedInput.Get("Package"),
+		Version:      bufferedInput.Get("Version"),
+		Architecture: bufferedInput.Get("Architecture"),
+		Source:       bufferedInput.Get("Source"),
 		V06Plus:      true,
 	}
 
-	bufferedInput.Reset("Package")
-	bufferedInput.Reset("Version")
-	bufferedInput.Reset("Architecture")
-	bufferedInput.Reset("Source")
+	bufferedInput.Get("Package")
+	bufferedInput.Get("Version")
+	bufferedInput.Get("Architecture")
+	bufferedInput.Get("Source")
 
 	filesize, _ := strconv.ParseInt(bufferedInput.Get("Size"), 10, 64)
 
-	md5 := bufferedInput.GetCopy("MD5sum")
+	md5 := bufferedInput.Get("MD5sum")
 	if md5 == "" {
 		// there are some broken repos out there with MD5 in wrong field
-		md5 = bufferedInput.GetCopy("MD5Sum")
+		md5 = bufferedInput.Get("MD5Sum")
 	}
 
 	result.UpdateFiles(PackageFiles{PackageFile{
-		Filename:     filepath.Base(bufferedInput.GetCopy("Filename")),
-		downloadPath: filepath.Dir(bufferedInput.GetCopy("Filename")),
+		Filename:     filepath.Base(bufferedInput.Get("Filename")),
+		downloadPath: filepath.Dir(bufferedInput.Get("Filename")),
 		Checksums: utils.ChecksumInfo{
 			Size:   filesize,
 			MD5:    strings.TrimSpace(md5),
-			SHA1:   strings.TrimSpace(bufferedInput.GetCopy("SHA1")),
-			SHA256: strings.TrimSpace(bufferedInput.GetCopy("SHA256")),
-			SHA512: strings.TrimSpace(bufferedInput.GetCopy("SHA512")),
+			SHA1:   strings.TrimSpace(bufferedInput.Get("SHA1")),
+			SHA256: strings.TrimSpace(bufferedInput.Get("SHA256")),
+			SHA512: strings.TrimSpace(bufferedInput.Get("SHA512")),
 		},
 	}})
 
@@ -225,10 +225,10 @@ func NewSourcePackageFromControlFile(input Stanza) (*Package, error) {
 func NewSourcePackageFromBufferedControlFile(bufferedInput BufferedStanza) (*Package, error) {
 	result := &Package{
 		IsSource:           true,
-		Name:               bufferedInput.GetCopy("Package"),
-		Version:            bufferedInput.GetCopy("Version"),
+		Name:               bufferedInput.Get("Package"),
+		Version:            bufferedInput.Get("Version"),
 		Architecture:       "source",
-		SourceArchitecture: bufferedInput.GetCopy("Architecture"),
+		SourceArchitecture: bufferedInput.Get("Architecture"),
 		V06Plus:            true,
 	}
 
@@ -249,7 +249,7 @@ func NewSourcePackageFromBufferedControlFile(bufferedInput BufferedStanza) (*Pac
 	bufferedInput.Reset("Checksums-Sha256")
 
 	for i := range files {
-		files[i].downloadPath = bufferedInput.GetCopy("Directory")
+		files[i].downloadPath = bufferedInput.Get("Directory")
 	}
 
 	result.UpdateFiles(files)
@@ -293,7 +293,7 @@ func NewInstallerPackageFromBufferedControlFile(input BufferedStanza, repo *Remo
 	}
 
 	files := make(PackageFiles, 0)
-	files, err := files.ParseSumField(input.GetCopy(""), func(sum *utils.ChecksumInfo, data string) { sum.SHA256 = data }, false, false)
+	files, err := files.ParseSumField(input.Get(""), func(sum *utils.ChecksumInfo, data string) { sum.SHA256 = data }, false, false)
 	if err != nil {
 		return nil, err
 	}
