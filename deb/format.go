@@ -264,6 +264,24 @@ var (
 )
 
 func canonicalCase(field string) string {
+	// If the field is already in canonical form, we can
+	// simply return a string literal version of it
+	for _, val := range canonicalOrderRelease {
+		if field == val {
+			return val
+		}
+	}
+	for _, val := range canonicalOrderBinary {
+		if field == val {
+			return val
+		}
+	}
+	for _, val := range canonicalOrderSource {
+		if field == val {
+			return val
+		}
+	}
+
 	upper := strings.ToUpper(field)
 	switch upper {
 	case "SHA1":
@@ -299,10 +317,8 @@ func canonicalCase(field string) string {
 		// input.
 		// In order to guarantee that canonicalCase always returns a new string, we
 		// need to perform a deep copy of mappedString prior to returning it
-		log.Printf("Returning deep copied mapped string %s", mappedString)
 		return string([]byte(mappedString[:]))
 	}
-	log.Printf("Returning mapped string %s", mappedString)
 	return mappedString
 }
 
@@ -410,7 +426,7 @@ func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedS
 				return nil, ErrMalformedStanza
 			}
 
-			// it's safe to pass a pointer to the lastField's underlying byte array
+			// It's safe to pass a pointer to the lastField's underlying byte array
 			// to canonicalCase because canonicalCase is guaranteed to return a new string
 			lastFieldBytes := lineBytes[:splitIndex]
 			lastField = canonicalCase(*(*string)(unsafe.Pointer(&lastFieldBytes)))
