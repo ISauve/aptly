@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"unicode"
+	"unsafe"
 )
 
 // Stanza or paragraph of Debian control file
@@ -388,27 +389,29 @@ func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedS
 				stanza[lastField].Write(bytes.TrimSpace(lineBytes))
 			}
 		} else {
-			line := string(lineBytes)
-			parts := strings.SplitN(line, ":", 2)
-			if len(parts) != 2 {
+			lineStr := *(*string)(unsafe.Pointer(&lineBytes))
+			splitIndex := strings.IndexByte(lineStr, ':')
+			if splitIndex == -1 {
 				return nil, ErrMalformedStanza
 			}
-			lastField = canonicalCase(parts[0])
+
+			lastField = canonicalCase(string(lineBytes[:splitIndex]))
 			lastFieldMultiline = isMultilineField(lastField, c.isRelease)
 
 			if stanza[lastField] == nil {
 				stanza[lastField] = &strings.Builder{}
 			}
 
+			lastFieldValue := lineBytes[splitIndex+1:]
 			if lastFieldMultiline {
 				stanza[lastField].Reset()
-				stanza[lastField].WriteString(parts[1])
-				if parts[1] != "" {
+				stanza[lastField].Write(lastFieldValue)
+				if len(lastFieldValue) > 0 {
 					stanza[lastField].WriteByte('\n')
 				}
 			} else {
 				stanza[lastField].Reset()
-				stanza[lastField].WriteString(strings.TrimSpace(parts[1]))
+				stanza[lastField].Write(bytes.TrimSpace(lastFieldValue))
 			}
 		}
 	}
