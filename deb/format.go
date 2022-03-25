@@ -266,8 +266,12 @@ var (
 func canonicalCase(field string) string {
 	upper := strings.ToUpper(field)
 	switch upper {
-	case "SHA1", "SHA256", "SHA512":
-		return upper
+	case "SHA1":
+		return "SHA1"
+	case "SHA256":
+		return "SHA256"
+	case "SHA512":
+		return "SHA512"
 	case "MD5SUM":
 		return "MD5Sum"
 	case "NOTAUTOMATIC":
@@ -396,7 +400,11 @@ func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedS
 			}
 
 			lastFieldBytes := lineBytes[:splitIndex]
-			lastField = canonicalCase(*(*string)(unsafe.Pointer(&lastFieldBytes)))
+			lastFieldStr := *(*string)(unsafe.Pointer(&lastFieldBytes))
+
+			log.Printf("Next field: %s", lastFieldStr)
+
+			lastField = canonicalCase(lastFieldStr)
 			lastFieldMultiline = isMultilineField(lastField, c.isRelease)
 
 			if stanza[lastField] == nil {
