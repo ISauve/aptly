@@ -281,8 +281,7 @@ func canonicalCase(field string) string {
 	}
 
 	startOfWord := true
-
-	return strings.Map(func(r rune) rune {
+	mappedString := strings.Map(func(r rune) rune {
 		if startOfWord {
 			startOfWord = false
 			return unicode.ToUpper(r)
@@ -294,6 +293,17 @@ func canonicalCase(field string) string {
 
 		return unicode.ToLower(r)
 	}, field)
+
+	if mappedString == field {
+		// If strings.Map does not need to modify the input, it simply returns the
+		// input.
+		// In order to guarantee that canonicalCase always returns a new string, we
+		// need to perform a deep copy of mappedString prior to returning it
+		log.Printf("Returning deep copied mapped string %s", mappedString)
+		return string([]byte(mappedString[:]))
+	}
+	log.Printf("Returning mapped string %s", mappedString)
+	return mappedString
 }
 
 // ControlFileReader implements reading of control files stanza by stanza
@@ -385,6 +395,7 @@ func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedS
 				stanza[lastField] = &strings.Builder{}
 			}
 
+			stanza[lastField].Grow(len(lineBytes) + 1)
 			if lastFieldMultiline {
 				stanza[lastField].Write(lineBytes)
 				stanza[lastField].WriteByte('\n')
@@ -399,12 +410,10 @@ func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedS
 				return nil, ErrMalformedStanza
 			}
 
+			// it's safe to pass a pointer to the lastField's underlying byte array
+			// to canonicalCase because canonicalCase is guaranteed to return a new string
 			lastFieldBytes := lineBytes[:splitIndex]
-			lastFieldStr := *(*string)(unsafe.Pointer(&lastFieldBytes))
-
-			log.Printf("Next field: %s", lastFieldStr)
-
-			lastField = canonicalCase(lastFieldStr)
+			lastField = canonicalCase(*(*string)(unsafe.Pointer(&lastFieldBytes)))
 			lastFieldMultiline = isMultilineField(lastField, c.isRelease)
 
 			if stanza[lastField] == nil {
@@ -414,12 +423,14 @@ func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedS
 			lastFieldValue := lineBytes[splitIndex+1:]
 			if lastFieldMultiline {
 				stanza[lastField].Reset()
+				stanza[lastField].Grow(len(lastFieldValue) + 1)
 				stanza[lastField].Write(lastFieldValue)
 				if len(lastFieldValue) > 0 {
 					stanza[lastField].WriteByte('\n')
 				}
 			} else {
 				stanza[lastField].Reset()
+				stanza[lastField].Grow(len(lastFieldValue))
 				stanza[lastField].Write(bytes.TrimSpace(lastFieldValue))
 			}
 		}
