@@ -395,7 +395,8 @@ func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedS
 				return nil, ErrMalformedStanza
 			}
 
-			lastField = canonicalCase(string(lineBytes[:splitIndex]))
+			lastFieldBytes := lineBytes[:splitIndex]
+			lastField = canonicalCase(*(*string)(unsafe.Pointer(&lastFieldBytes)))
 			lastFieldMultiline = isMultilineField(lastField, c.isRelease)
 
 			if stanza[lastField] == nil {
