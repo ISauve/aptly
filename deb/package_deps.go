@@ -34,3 +34,24 @@ func parseDependencies(input Stanza, key string) []string {
 	}
 	return result
 }
+
+func parseDependenciesBuffered(input BufferedStanza, key string) []string {
+	value := input.GetCopy(key)
+	if value == "" {
+		return nil
+	}
+
+	input.Reset(key)
+
+	value = strings.TrimSpace(value)
+	if value == "" {
+		// empty line is no depdencies
+		return nil
+	}
+
+	result := strings.Split(value, ",")
+	for i := range result {
+		result[i] = strings.TrimSpace(result[i])
+	}
+	return result
+}

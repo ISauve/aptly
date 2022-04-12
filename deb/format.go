@@ -2,15 +2,62 @@ package deb
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"io"
+	"log"
 	"sort"
 	"strings"
 	"unicode"
+	"unsafe"
 )
 
 // Stanza or paragraph of Debian control file
 type Stanza map[string]string
+
+type BufferedStanza map[string]*strings.Builder
+
+func (b BufferedStanza) Get(key string) string {
+	// if b[key] == nil {
+	// 	return ""
+	// }
+	return b[key].String()
+}
+
+func (b BufferedStanza) Reset(key string) {
+	// if b[key] == nil {
+	// 	return
+	// }
+	b[key].Reset()
+}
+
+func (b BufferedStanza) Empty() bool {
+	for _, val := range b {
+		if val != nil && val.Len() > 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func (b *BufferedStanza) Clear() {
+	for _, val := range *b {
+		if val != nil {
+			val.Reset()
+		}
+	}
+}
+
+func (b *BufferedStanza) Print() {
+	log.Printf("*** Printing stanza ***")
+	for key, val := range *b {
+		var printVal string
+		if val != nil {
+			printVal = val.String()
+		}
+		log.Printf("  %s -> %s\n", key, printVal)
+	}
+}
 
 // MaxFieldSize is maximum stanza field size in bytes
 const MaxFieldSize = 2 * 1024 * 1024
@@ -210,10 +257,32 @@ var (
 )
 
 func canonicalCase(field string) string {
+	// If the field is already in canonical form, we can
+	// simply return a string literal version of it
+	for _, val := range canonicalOrderRelease {
+		if field == val {
+			return val
+		}
+	}
+	for _, val := range canonicalOrderBinary {
+		if field == val {
+			return val
+		}
+	}
+	for _, val := range canonicalOrderSource {
+		if field == val {
+			return val
+		}
+	}
+
 	upper := strings.ToUpper(field)
 	switch upper {
-	case "SHA1", "SHA256", "SHA512":
-		return upper
+	case "SHA1":
+		return "SHA1"
+	case "SHA256":
+		return "SHA256"
+	case "SHA512":
+		return "SHA512"
 	case "MD5SUM":
 		return "MD5Sum"
 	case "NOTAUTOMATIC":
@@ -223,8 +292,7 @@ func canonicalCase(field string) string {
 	}
 
 	startOfWord := true
-
-	return strings.Map(func(r rune) rune {
+	mappedString := strings.Map(func(r rune) rune {
 		if startOfWord {
 			startOfWord = false
 			return unicode.ToUpper(r)
@@ -236,6 +304,15 @@ func canonicalCase(field string) string {
 
 		return unicode.ToLower(r)
 	}, field)
+
+	if mappedString == field {
+		// If strings.Map does not need to modify the input, it simply returns the
+		// input.
+		// In order to guarantee that canonicalCase always returns a new string, we
+		// need to perform a deep copy of mappedString prior to returning it
+		return string([]byte(mappedString[:]))
+	}
+	return mappedString
 }
 
 // ControlFileReader implements reading of control files stanza by stanza
@@ -257,7 +334,7 @@ func NewControlFileReader(r io.Reader, isRelease, isInstaller bool) *ControlFile
 	}
 }
 
-// ReadStanza reeads one stanza from control file
+// ReadStanza reads one stanza from control file
 func (c *ControlFileReader) ReadStanza() (Stanza, error) {
 	stanza := make(Stanza, 32)
 	lastField := ""
@@ -301,6 +378,76 @@ func (c *ControlFileReader) ReadStanza() (Stanza, error) {
 		return nil, err
 	}
 	if len(stanza) > 0 {
+		return stanza, nil
+	}
+	return nil, nil
+}
+
+// ReadStanza reads one stanza from control file
+func (c *ControlFileReader) ReadBufferedStanza(stanza BufferedStanza) (BufferedStanza, error) {
+	lastField := ""
+	lastFieldMultiline := c.isInstaller
+
+	for c.scanner.Scan() {
+		lineBytes := c.scanner.Bytes()
+
+		// Current stanza ends with empty line
+		if len(lineBytes) == 0 {
+			if !stanza.Empty() {
+				return stanza, nil
+			}
+			continue
+		}
+
+		if lineBytes[0] == ' ' || lineBytes[0] == '\t' || c.isInstaller {
+			if stanza[lastField] == nil {
+				stanza[lastField] = &strings.Builder{}
+			}
+
+			stanza[lastField].Grow(len(lineBytes) + 1)
+			if lastFieldMultiline {
+				stanza[lastField].Write(lineBytes)
+				stanza[lastField].WriteByte('\n')
+			} else {
+				stanza[lastField].WriteByte(' ')
+				stanza[lastField].Write(bytes.TrimSpace(lineBytes))
+			}
+		} else {
+			lineStr := *(*string)(unsafe.Pointer(&lineBytes))
+			splitIndex := strings.IndexByte(lineStr, ':')
+			if splitIndex == -1 {
+				return nil, ErrMalformedStanza
+			}
+
+			// It's safe to pass a pointer to the lastField's underlying byte array
+			// to canonicalCase because canonicalCase is guaranteed to return a new string
+			lastFieldBytes := lineBytes[:splitIndex]
+			lastField = canonicalCase(*(*string)(unsafe.Pointer(&lastFieldBytes)))
+			lastFieldMultiline = isMultilineField(lastField, c.isRelease)
+
+			if stanza[lastField] == nil {
+				stanza[lastField] = &strings.Builder{}
+			}
+
+			lastFieldValue := lineBytes[splitIndex+1:]
+			if lastFieldMultiline {
+				stanza[lastField].Reset()
+				stanza[lastField].Grow(len(lastFieldValue) + 1)
+				stanza[lastField].Write(lastFieldValue)
+				if len(lastFieldValue) > 0 {
+					stanza[lastField].WriteByte('\n')
+				}
+			} else {
+				stanza[lastField].Reset()
+				stanza[lastField].Grow(len(lastFieldValue))
+				stanza[lastField].Write(bytes.TrimSpace(lastFieldValue))
+			}
+		}
+	}
+	if err := c.scanner.Err(); err != nil {
+		return nil, err
+	}
+	if !stanza.Empty() {
 		return stanza, nil
 	}
 	return nil, nil
